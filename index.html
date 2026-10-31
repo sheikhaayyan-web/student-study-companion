@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TalibAI - Student Study Companion</title>
+  
+  <!-- PWA Metadata -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#121212">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TalibAI">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    :root {
+      --spotify-green: #1ED760;
+      --spotify-green-hover: #1fdf64;
+      --spotify-dark: #121212;
+      --spotify-card: rgba(24, 24, 24, 0.78);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-glow: rgba(30, 215, 96, 0.15);
+      --purple-accent: #9D7BFF;
+    }
+    body {
+      background-color: #0c0e12;
+      color: #f3f4f6;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .liquid-glass {
+      background: var(--spotify-card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+    }
+    .spotify-btn {
+      background-color: var(--spotify-green);
+      color: #000;
+      font-weight: 700;
+      transition: all 0.2s ease-in-out;
+    }
+    .spotify-btn:hover {
+      background-color: var(--spotify-green-hover);
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(30, 215, 96, 0.4);
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #121212;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #2a2e39;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #1ED760;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col md:flex-row antialiased select-none">
+
+  <!-- ACCOUNT ACCESS -->
+  <div id="firstTimeLoginModal" style="display: none;" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg items-center justify-center p-4">
+    <div class="liquid-glass border border-white/10 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-6 shadow-2xl relative">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 rounded-full bg-[#1ED760] flex items-center justify-center text-black font-extrabold text-2xl mx-auto shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <h2 id="authTitle" class="text-2xl font-bold tracking-tight text-white">Log in to TalibAI</h2>
+        <p id="authDescription" class="text-xs text-neutral-400">Your learning profile and progress are saved to your account.</p>
+      </div>
+      <form id="authForm" onsubmit="submitAuth(event)" class="space-y-4">
+        <div id="authNameGroup" class="hidden">
+          <label for="authName" class="text-xs font-semibold text-neutral-300 block mb-1">Full name</label>
+          <input id="authName" autocomplete="name" maxlength="100" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white">
+        </div>
+        <div id="authLevelGroup" class="hidden">
+          <label for="authLevel" class="text-xs font-semibold text-neutral-300 block mb-1">Academic level</label>
+          <select id="authLevel" class="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white">
+            <option value="class_9_10">Class 9–10</option><option value="class_11_12">Class 11–12</option>
+            <option value="bachelors" selected>Bachelor's</option><option value="masters">Master's</option>
+          </select>
+        </div>
+        <div id="authEmailGroup">
+          <label for="authEmail" class="text-xs font-semibold text-neutral-300 block mb-1">Email</label>
+          <input id="authEmail" type="email" autocomplete="email" maxlength="254" required class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white">
+        </div>
+        <div id="authPasswordGroup">
+          <label for="authPassword" class="text-xs font-semibold text-neutral-300 block mb-1">Password</label>
+          <input id="authPassword" type="password" autocomplete="current-password" minlength="12" maxlength="128" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white">
+          <p id="passwordHelp" class="text-[10px] text-neutral-500 mt-1">Use at least 12 characters.</p>
+        </div>
+        <div id="resetTokenGroup" class="hidden">
+          <label for="resetToken" class="text-xs font-semibold text-neutral-300 block mb-1">Reset token</label>
+          <input id="resetToken" autocomplete="one-time-code" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white">
+        </div>
+        <button id="authSubmitButton" type="submit" class="spotify-btn w-full py-3 rounded-xl text-xs font-bold tracking-wide">Log in</button>
+        <div class="flex justify-between text-xs">
+          <button type="button" id="authSwitchButton" onclick="switchAuthMode(authMode === 'signup' ? 'login' : 'signup')" class="text-[#1ED760] hover:underline">Create account</button>
+          <button type="button" id="forgotButton" onclick="switchAuthMode('forgot')" class="text-neutral-400 hover:text-white">Forgot password?</button>
+        </div>
+        <div id="oauthDivider" class="hidden flex items-center gap-3 text-[10px] text-neutral-500 uppercase">
+          <span class="h-px flex-1 bg-white/10"></span><span>or continue with</span><span class="h-px flex-1 bg-white/10"></span>
+        </div>
+        <div id="oauthButtons" class="hidden grid grid-cols-2 gap-3">
+          <button id="googleAuthButton" type="button" onclick="startOAuth('google')" disabled class="border border-white/10 rounded-xl px-3 py-2.5 text-center text-xs text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"><i class="fa-brands fa-google mr-2"></i><span id="googleAuthLabel">Continue with Google</span></button>
+          <button id="facebookAuthButton" type="button" onclick="startOAuth('facebook')" disabled class="border border-white/10 rounded-xl px-3 py-2.5 text-center text-xs text-white hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"><i class="fa-brands fa-facebook mr-2"></i><span id="facebookAuthLabel">Continue with Facebook</span></button>
+          <p id="oauthConfigNote" class="hidden col-span-2 text-center text-[10px] text-neutral-500">Social sign-up is unavailable until the app administrator configures provider credentials.</p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="w-full md:w-64 bg-[#121212] border-r border-white/5 flex flex-col justify-between p-4 flex-shrink-0">
+    <div class="space-y-5">
+      <!-- Brand Logo -->
+      <div class="flex items-center space-x-3 px-2 pt-2">
+        <div class="w-10 h-10 rounded-full bg-[#1ED760] flex items-center justify-center text-black font-extrabold text-xl shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+            TalibAI
+            <span class="text-[10px] px-1.5 py-0.5 rounded bg-[#9D7BFF]/20 text-[#9D7BFF] font-medium border border-[#9D7BFF]/30">Study</span>
+          </h1>
+          <p class="text-xs text-neutral-400">Study Companion</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="space-y-1 pt-2">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition text-white bg-white/10">
+          <i class="fa-solid fa-house text-[#1ED760] w-5 text-center"></i>
+          <span>Home Dashboard</span>
+        </button>
+        <button onclick="switchTab('tutor')" id="nav-tutor" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-solid fa-chalkboard-user text-[#9D7BFF] w-5 text-center"></i>
+          <span>AI Teacher & Tutor</span>
+        </button>
+        <button onclick="switchTab('planner')" id="nav-planner" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-solid fa-calendar-check text-blue-400 w-5 text-center"></i>
+          <span>Syllabus & Timetable</span>
+        </button>
+        <button onclick="switchTab('lectures')" id="nav-lectures" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-brands fa-youtube text-red-500 w-5 text-center"></i>
+          <span>Lectures & 15-MCQ</span>
+        </button>
+        <button onclick="switchTab('studio')" id="nav-studio" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-solid fa-file-pen text-amber-400 w-5 text-center"></i>
+          <span>Assignment Studio</span>
+        </button>
+        <button onclick="switchTab('courses')" id="nav-courses" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-solid fa-laptop-code text-cyan-400 w-5 text-center"></i>
+          <span>Short Courses</span>
+        </button>
+        <button onclick="switchTab('library')" id="nav-library" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-solid fa-book-bookmark text-emerald-400 w-5 text-center"></i>
+          <span>Digital E-Library</span>
+        </button>
+        <button onclick="switchTab('account')" id="nav-account" class="nav-item w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-neutral-400 hover:text-white hover:bg-white/5">
+          <i class="fa-solid fa-user-gear text-purple-400 w-5 text-center"></i>
+          <span>Account & Profile</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Academic Level Quick Switcher & User Profile -->
+    <div class="space-y-3 pt-3 border-t border-white/5">
+      <!-- PWA Install Button (shows if installable) -->
+      <button id="pwaInstallBtn" onclick="installPWA()" class="hidden w-full p-2 rounded-xl bg-[#1ED760]/10 border border-[#1ED760]/30 text-xs font-bold text-[#1ED760] hover:bg-[#1ED760]/20 transition flex items-center justify-center gap-2">
+        <i class="fa-solid fa-mobile-screen"></i> Install App on Phone
+      </button>
+
+      <div class="px-1">
+        <label class="text-[10px] font-semibold text-neutral-400 uppercase tracking-wider block mb-1">Academic Level</label>
+        <select id="academicLevelSelect" onchange="onAcademicLevelChanged(this.value)" class="w-full bg-[#181818] border border-white/10 rounded-lg px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[#1ED760]">
+          <option value="class_9_10">Class 9–10 (Secondary / Matric)</option>
+          <option value="class_11_12">Class 11–12 (FSc / Inter)</option>
+          <option value="bachelors" selected>Bachelor's</option>
+          <option value="masters">Master's / Postgrad</option>
+        </select>
+      </div>
+
+      <div onclick="switchTab('account')" class="liquid-glass hover:border-[#1ED760]/40 cursor-pointer rounded-xl p-2.5 flex items-center justify-between transition group">
+        <div class="flex items-center space-x-2">
+          <div id="profileInitials" class="w-7 h-7 rounded-full bg-gradient-to-tr from-purple-500 to-emerald-400 flex items-center justify-center text-[10px] font-bold text-white">
+            ?
+          </div>
+          <div class="truncate">
+            <p id="profileName" class="text-xs font-semibold text-white truncate">Signed out</p>
+            <p id="profileMajor" class="text-[10px] text-neutral-400 truncate"></p>
+          </div>
+        </div>
+        <div class="flex items-center space-x-1.5">
+          <span class="text-[#1ED760] text-xs font-bold"><i class="fa-solid fa-fire text-amber-400 mr-0.5"></i><span id="streakCount">0d</span></span>
+          <i class="fa-solid fa-gear text-neutral-500 group-hover:text-white text-xs ml-1 transition"></i>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEWPORT -->
+  <main class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+
+    <!-- TOP BAR -->
+    <header class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-2">
+          <h2 id="pageTitle" class="text-xl md:text-2xl font-bold tracking-tight text-white">Academic Headquarters</h2>
+          <span id="levelBadge" class="text-[11px] bg-[#1ED760]/10 text-[#1ED760] font-semibold px-2.5 py-0.5 rounded-full border border-[#1ED760]/30">Bachelor's Mode Active</span>
+        </div>
+        <p class="text-xs text-neutral-400 mt-0.5">Syllabus-aligned adaptive learning engine with verified progress checkpoints.</p>
+      </div>
+
+      <div class="flex items-center space-x-2.5 w-full md:w-auto">
+        <button onclick="switchTab('account')" id="topLoginBtn" class="liquid-glass hover:bg-white/10 px-3.5 py-1.5 rounded-full text-xs font-semibold text-[#1ED760] border border-[#1ED760]/30 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-user-circle"></i>
+          <span id="topLoginText">Account</span>
+        </button>
+        <button onclick="toggleUrduMode()" id="urduToggleBtn" class="liquid-glass hover:bg-white/10 px-3 py-1.5 rounded-full text-xs font-semibold text-white border border-white/10 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-language text-[#9D7BFF]"></i>
+          <span id="langLabel">English / اردو</span>
+        </button>
+        <button onclick="quickPomodoro()" class="liquid-glass hover:bg-white/10 px-3 py-1.5 rounded-full text-xs font-semibold text-amber-400 border border-amber-500/30 flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-stopwatch"></i>
+          <span id="pomodoroLabel">25m Focus</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- NOTIFICATION BANNER -->
+    <div id="statusAlert" class="hidden p-3 rounded-xl text-xs flex items-center justify-between transition"></div>
+
+    <!-- TAB 1: HOME DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="liquid-glass p-5 rounded-2xl relative overflow-hidden group hover:border-[#1ED760]/40 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Syllabus Complete</span>
+            <div class="w-8 h-8 rounded-full bg-[#1ED760]/10 flex items-center justify-center text-[#1ED760]">
+              <i class="fa-solid fa-chart-pie text-xs"></i>
+            </div>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span id="statSyllabusPct" class="text-3xl font-extrabold text-white">0%</span>
+          </div>
+          <div class="w-full bg-neutral-800 rounded-full h-1.5 mt-3 overflow-hidden">
+            <div id="statSyllabusBar" class="bg-[#1ED760] h-1.5 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <div class="liquid-glass p-5 rounded-2xl relative overflow-hidden group hover:border-[#9D7BFF]/40 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Verified Quiz Mastery</span>
+            <div class="w-8 h-8 rounded-full bg-[#9D7BFF]/10 flex items-center justify-center text-[#9D7BFF]">
+              <i class="fa-solid fa-award text-xs"></i>
+            </div>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span id="statQuizMastery" class="text-3xl font-extrabold text-white">0%</span>
+            <span id="statQuizAttempts" class="text-xs text-neutral-400">0 attempts</span>
+          </div>
+          <p class="text-[11px] text-neutral-400 mt-2">Quiz attempts recorded</p>
+        </div>
+
+        <div class="liquid-glass p-5 rounded-2xl relative overflow-hidden group hover:border-amber-400/40 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Study Time</span>
+            <div class="w-8 h-8 rounded-full bg-amber-400/10 flex items-center justify-center text-amber-400">
+              <i class="fa-solid fa-clock text-xs"></i>
+            </div>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span id="statHours" class="text-3xl font-extrabold text-white">0h</span>
+            <span class="text-xs text-neutral-400">recorded</span>
+          </div>
+          <p class="text-[11px] text-neutral-400 mt-2">Completed focus sessions</p>
+        </div>
+
+        <div class="liquid-glass p-5 rounded-2xl relative overflow-hidden group hover:border-red-400/40 transition">
+          <div class="flex justify-between items-start">
+            <span class="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">Weak Topics</span>
+            <div class="w-8 h-8 rounded-full bg-red-400/10 flex items-center justify-center text-red-400">
+              <i class="fa-solid fa-triangle-exclamation text-xs"></i>
+            </div>
+          </div>
+          <div class="mt-3 flex items-baseline gap-2">
+            <span id="statWeakTopics" class="text-3xl font-extrabold text-white">0</span>
+            <span id="statWeakTopicNames" class="text-xs text-red-400 font-medium">No quiz data</span>
+          </div>
+          <button onclick="switchTab('tutor')" class="text-[11px] text-[#1ED760] hover:underline mt-2 inline-block font-semibold">Start AI Remediation →</button>
+        </div>
+      </div>
+
+      <!-- Main Columns: Today's Timetable + Quick Access Hub -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 liquid-glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-base font-bold text-white flex items-center gap-2">
+                <i class="fa-solid fa-calendar-day text-[#1ED760]"></i> Today's Smart Timetable
+              </h3>
+              <p class="text-xs text-neutral-400">Dynamic daily schedule derived from your uploaded course syllabus.</p>
+            </div>
+            <button onclick="switchTab('planner')" class="text-xs text-[#1ED760] hover:underline font-semibold">+ Upload Outline</button>
+          </div>
+
+          <div id="timetableList" class="space-y-3 pt-2">
+            <div class="text-xs text-neutral-500 animate-pulse">Loading timetable...</div>
+          </div>
+        </div>
+
+        <div class="liquid-glass rounded-2xl p-6 space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-[#9D7BFF]"></i> Study Workspaces
+          </h3>
+
+          <div class="space-y-2.5">
+            <button onclick="switchTab('studio')" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition flex items-center justify-between group">
+              <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-file-powerpoint text-amber-400 text-lg"></i>
+                <div>
+                  <p class="text-xs font-semibold text-white">Assignment & Slide Studio</p>
+                  <p class="text-[11px] text-neutral-400">Generate & export editable Word / PPTX</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-xs text-neutral-500 group-hover:text-white transition"></i>
+            </button>
+
+            <button onclick="switchTab('lectures')" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition flex items-center justify-between group">
+              <div class="flex items-center space-x-3">
+                <i class="fa-brands fa-youtube text-red-500 text-lg"></i>
+                <div>
+                  <p class="text-xs font-semibold text-white">Lecture & 15-MCQ Hub</p>
+                  <p class="text-[11px] text-neutral-400">YouTube search links & topic quizzes</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-xs text-neutral-500 group-hover:text-white transition"></i>
+            </button>
+
+            <button onclick="switchTab('courses')" class="w-full text-left p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 transition flex items-center justify-between group">
+              <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-graduation-cap text-cyan-400 text-lg"></i>
+                <div>
+                  <p class="text-xs font-semibold text-white">Short Skill Courses</p>
+                  <p class="text-[11px] text-neutral-400">Python, Freelancing, UI Design</p>
+                </div>
+              </div>
+              <i class="fa-solid fa-chevron-right text-xs text-neutral-500 group-hover:text-white transition"></i>
+            </button>
+          </div>
+
+          <div class="p-4 rounded-xl bg-gradient-to-br from-purple-900/30 to-black border border-purple-500/20 mt-4">
+            <p class="text-xs font-bold text-[#9D7BFF] mb-1">Upcoming Exam Countdown</p>
+            <p id="examCountdown" class="text-xs text-neutral-300">No exam dates added</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: AI TEACHER & TUTOR -->
+    <div id="tab-tutor" class="tab-content hidden space-y-4">
+      <div class="liquid-glass rounded-2xl p-6 flex flex-col h-[650px]">
+        <div class="flex items-center justify-between pb-3 border-b border-white/5">
+          <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-full bg-[#9D7BFF]/20 text-[#9D7BFF] flex items-center justify-center font-bold text-lg border border-[#9D7BFF]/30">
+              <i class="fa-solid fa-user-graduate"></i>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                Prof. Talib <span class="text-[10px] bg-[#1ED760]/20 text-[#1ED760] px-2 py-0.5 rounded-full font-bold">AI service</span>
+              </h3>
+              <p id="tutorSubhead" class="text-xs text-neutral-400">Teaching Mode: Bachelor's Level • Socratic Method Active</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="requestUrduExplanation()" class="text-xs px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 border border-white/10">اردو میں سمجھائیں</button>
+            <button onclick="requestHint()" class="text-xs px-3 py-1.5 rounded-lg bg-[#9D7BFF]/20 text-[#9D7BFF] border border-[#9D7BFF]/30 font-semibold hover:bg-[#9D7BFF]/30">💡 Give Me a Hint</button>
+          </div>
+        </div>
+
+        <div id="chatHistory" class="flex-1 overflow-y-auto py-4 space-y-4 pr-2"></div>
+
+        <div class="pt-3 border-t border-white/5 flex items-center space-x-3">
+          <input id="chatInput" onkeydown="if(event.key==='Enter') sendTutorMessage()" type="text" placeholder="Ask any question, paste assignment problems, or ask in Urdu..." class="flex-1 bg-[#181818] border border-white/10 rounded-xl px-4 py-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#1ED760]">
+          <button onclick="sendTutorMessage()" class="spotify-btn px-5 py-3 rounded-xl text-xs flex items-center gap-1.5">
+            <span>Send</span>
+            <i class="fa-solid fa-arrow-up text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: SYLLABUS & TIMETABLE PLANNER -->
+    <div id="tab-planner" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- PDF & Text Upload Box -->
+        <div class="liquid-glass rounded-2xl p-6 space-y-4">
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-file-arrow-up text-[#1ED760]"></i> Upload Course Outline
+          </h3>
+          <p class="text-xs text-neutral-400">Upload your PDF syllabus or paste the course outline. TalibAI automatically generates an intelligent timetable.</p>
+          
+          <input id="newCourseName" type="text" placeholder="Course Name (e.g. Artificial Intelligence)" class="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2 text-xs text-white">
+
+          <!-- Real PDF File Upload -->
+          <div class="border-2 border-dashed border-white/10 hover:border-[#1ED760]/50 rounded-xl p-4 text-center cursor-pointer transition bg-white/[0.02]" onclick="document.getElementById('pdfFileInput').click()">
+            <i class="fa-solid fa-file-pdf text-2xl text-red-400 mb-1"></i>
+            <p class="text-xs font-semibold text-white">Click to Select Syllabus PDF</p>
+            <p id="pdfFilename" class="text-[10px] text-neutral-400 mt-0.5">Supports HEC, Cambridge, or Board PDFs</p>
+            <input type="file" id="pdfFileInput" accept="application/pdf" class="hidden" onchange="handlePdfSelected(this)">
+          </div>
+
+          <div class="flex items-center gap-2 my-1">
+            <div class="h-px bg-white/10 flex-1"></div>
+            <span class="text-[10px] text-neutral-500 uppercase">OR Paste Text</span>
+            <div class="h-px bg-white/10 flex-1"></div>
+          </div>
+
+          <textarea id="syllabusText" rows="4" placeholder="Paste modules, chapter headings, or topics here..." class="w-full bg-[#181818] border border-white/10 rounded-xl p-3 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-[#1ED760]"></textarea>
+
+          <button onclick="submitSyllabus()" class="spotify-btn w-full py-2.5 rounded-xl text-xs font-bold">Generate Timetable & Roadmap</button>
+        </div>
+
+        <!-- Generated Roadmap -->
+        <div class="lg:col-span-2 liquid-glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-base font-bold text-white">Active Courses & Progress</h3>
+            <span class="text-xs text-[#1ED760] font-semibold">Your saved courses</span>
+          </div>
+
+          <div id="activeCoursesList" class="space-y-3">
+            <div class="text-xs text-neutral-500 animate-pulse">Loading courses...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 4: LECTURES & 15-MCQ LEARNING VERIFICATION -->
+    <div id="tab-lectures" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Video Player Column -->
+        <div class="lg:col-span-2 liquid-glass rounded-2xl p-6 space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-semibold text-[#9D7BFF] uppercase tracking-wider">Curated YouTube Lecture</span>
+              <h3 id="currentLectureTitle" class="text-base font-bold text-white">Select a saved topic</h3>
+            </div>
+              <span class="text-xs bg-red-600/20 text-red-400 border border-red-500/30 px-2 py-1 rounded font-bold">YouTube search</span>
+          </div>
+
+          <div class="w-full min-h-48 bg-black rounded-xl border border-white/10 p-4">
+            <label for="quizTopicSelect" class="block text-xs text-neutral-400 mb-2">Choose one of your saved topics</label>
+            <select id="quizTopicSelect" onchange="loadLectures()" class="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white">
+              <option value="">Add a course outline to begin</option>
+            </select>
+            <div id="lectureList" class="mt-3 space-y-2"><p class="text-xs text-neutral-500">No topic selected.</p></div>
+            <p class="text-[11px] text-neutral-400 mt-3">Lecture links open YouTube search. TalibAI does not verify video completion.</p>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <p class="text-xs text-neutral-400">Pass the quiz to record verified progress for this topic.</p>
+            <button onclick="loadQuiz()" class="spotify-btn px-5 py-2.5 rounded-full text-xs font-bold">Start 15-MCQ Verification</button>
+          </div>
+        </div>
+
+        <!-- 15-MCQ Test Box -->
+        <div class="liquid-glass rounded-2xl p-6 space-y-4 flex flex-col h-[600px]">
+          <div class="flex items-center justify-between pb-3 border-b border-white/5">
+            <div>
+              <h4 class="text-sm font-bold text-white">15-MCQ Checkpoint</h4>
+              <p class="text-[11px] text-neutral-400">Passing criteria: &ge; 70% (11/15)</p>
+            </div>
+            <span id="quizIndexBadge" class="text-xs font-bold px-2 py-0.5 rounded bg-amber-400/20 text-amber-400">Not started</span>
+          </div>
+
+          <div id="quizBody" class="flex-1 overflow-y-auto space-y-4">
+            <p id="quizQuestionText" class="text-xs font-semibold text-white leading-relaxed">
+              Click 'Start 15-MCQ Verification' to begin your test.
+            </p>
+            <div id="quizOptionsList" class="space-y-2"></div>
+            <div id="questionFeedback" class="hidden p-3 rounded-xl text-xs space-y-1"></div>
+          </div>
+
+          <div class="pt-3 border-t border-white/5 flex items-center justify-between">
+            <button onclick="prevQuestion()" id="btnPrevQ" class="text-xs px-3 py-1.5 rounded-lg bg-white/5 text-neutral-400 hover:text-white disabled:opacity-40" disabled>Previous</button>
+            <button onclick="nextQuestion()" id="btnNextQ" class="spotify-btn px-4 py-1.5 rounded-lg text-xs font-bold" disabled>Next Question</button>
+            <button onclick="submitQuiz()" id="btnSubmitQ" class="hidden px-4 py-1.5 rounded-lg bg-[#9D7BFF] text-black font-bold text-xs hover:bg-[#b094ff]">Submit Test</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: EDITABLE ASSIGNMENT & SLIDE STUDIO -->
+    <div id="tab-studio" class="tab-content hidden space-y-6">
+      <div class="liquid-glass rounded-2xl p-6 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-pen-to-square text-[#1ED760]"></i> Editable Assignment & Presentation Studio
+            </h3>
+            <p class="text-xs text-neutral-400">Generates editable academic drafts with real-time export to formatted .DOCX and .PPTX files.</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button onclick="exportDocx()" class="text-xs px-3.5 py-1.5 rounded-lg bg-blue-600/20 text-blue-400 border border-blue-500/30 font-semibold hover:bg-blue-600/30 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-file-word"></i> Export .DOCX
+            </button>
+            <button onclick="exportPptx()" class="text-xs px-3.5 py-1.5 rounded-lg bg-amber-600/20 text-amber-400 border border-amber-500/30 font-semibold hover:bg-amber-600/30 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-file-powerpoint"></i> Export .PPTX
+            </button>
+          </div>
+        </div>
+
+          <div class="flex items-center space-x-3">
+          <input id="studioTopicInput" oninput="queueStudioSave()" type="text" placeholder="Assignment topic" class="flex-1 bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white">
+          <button onclick="generateStudioDraft()" id="btnGenDraft" class="spotify-btn px-4 py-2.5 rounded-xl text-xs font-bold">Generate Draft</button>
+        </div>
+
+        <div class="border border-white/10 rounded-xl p-5 bg-[#14161a] space-y-3">
+          <div class="flex items-center justify-between text-[11px] text-neutral-400 border-b border-white/5 pb-2">
+            <span><i class="fa-solid fa-i-cursor mr-1"></i> Live Editable Workspace (Click anywhere below to edit text directly)</span>
+            <span id="studioSaveStatus" class="text-neutral-400">No saved draft</span>
+          </div>
+
+          <div id="studioEditor" oninput="queueStudioSave()" contenteditable="true" aria-label="Editable assignment draft" class="text-xs text-neutral-200 space-y-3 focus:outline-none min-h-[220px]"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 6: SHORT COURSES & SKILLS -->
+    <div id="tab-courses" class="tab-content hidden space-y-6">
+      <div class="liquid-glass rounded-2xl p-6 space-y-4">
+        <div>
+          <h3 class="text-base font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-laptop-code text-cyan-400"></i> Short Courses & Skill Development
+          </h3>
+          <p class="text-xs text-neutral-400">Curated YouTube search links for programming, design, freelancing, and AI.</p>
+        </div>
+
+        <div id="coursesGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
+          <div class="text-xs text-neutral-500 animate-pulse">Loading courses...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 7: DIGITAL E-LIBRARY -->
+    <div id="tab-library" class="tab-content hidden space-y-6">
+      <div class="liquid-glass rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-book-bookmark text-emerald-400"></i> Digital E-Library & "Ask Your PDF"
+            </h3>
+            <p class="text-xs text-neutral-400">Upload a text-based PDF to save it to your account and ask questions against its extracted text.</p>
+          </div>
+            <label for="libraryPdfInput" class="spotify-btn px-4 py-2 rounded-full text-xs font-bold cursor-pointer">Upload PDF</label>
+            <input id="libraryPdfInput" type="file" accept="application/pdf" class="hidden" onchange="uploadLibraryPdf(this)">
+        </div>
+
+          <div id="libraryDocuments" class="space-y-3 pt-2"><p class="text-xs text-neutral-500">Loading your library...</p></div>
+          <form id="libraryAskForm" onsubmit="askLibrary(event)" class="flex gap-2">
+            <input id="libraryQuestion" required maxlength="4000" placeholder="Ask about a selected PDF" class="flex-1 bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white">
+            <button class="spotify-btn px-4 py-2.5 rounded-xl text-xs font-bold">Ask</button>
+          </form>
+          <div id="libraryAnswer" class="hidden p-4 rounded-xl bg-white/5 text-xs text-neutral-200 whitespace-pre-wrap"></div>
+      </div>
+    </div>
+
+    <!-- TAB 8: ACCOUNT & STUDENT LOGIN -->
+    <div id="tab-account" class="tab-content hidden space-y-6">
+      <div class="liquid-glass rounded-2xl p-6 space-y-6 max-w-2xl mx-auto">
+        <div class="flex items-center space-x-4 border-b border-white/5 pb-4">
+          <div id="accountAvatar" class="w-16 h-16 rounded-full bg-gradient-to-tr from-[#9D7BFF] to-[#1ED760] flex items-center justify-center text-xl font-bold text-black shadow-lg">
+            ST
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-white">Student Account & Profile</h3>
+            <p id="accountEmail" class="text-xs text-neutral-400">Personalize your profile and saved settings.</p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-semibold text-neutral-300 block mb-1.5">Your Full Name</label>
+            <input id="editName" type="text" placeholder="e.g. Ali Raza" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#1ED760]">
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-neutral-300 block mb-1.5">Institution / University / School</label>
+              <input id="editInstitution" type="text" placeholder="e.g. FAST, NUST, Punjab College" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#1ED760]">
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-neutral-300 block mb-1.5">Degree / Major / Class</label>
+              <input id="editMajor" type="text" placeholder="e.g. BS Computer Science, FSc Pre-Eng" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#1ED760]">
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="text-xs font-semibold text-neutral-300 block mb-1.5">Current Semester / Grade</label>
+              <input id="editSemester" type="number" min="1" max="12" placeholder="Optional" class="w-full bg-[#181818] border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#1ED760]">
+            </div>
+
+            <div>
+              <label class="text-xs font-semibold text-neutral-300 block mb-1.5">Academic Level Tier</label>
+              <select id="editLevel" class="w-full bg-[#181818] border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#1ED760]">
+                <option value="class_9_10">Class 9–10 (Secondary / Matric)</option>
+                <option value="class_11_12">Class 11–12 (FSc / Inter)</option>
+                <option value="bachelors">Bachelor's (BS / Undergrad)</option>
+                <option value="masters">Master's / Postgrad</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="pt-4 flex items-center justify-between border-t border-white/5">
+            <button onclick="saveStudentProfile()" class="spotify-btn px-6 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i> Save Changes
+            </button>
+            <button onclick="logoutStudent()" class="px-4 py-2.5 rounded-xl bg-red-500/10 text-red-400 border border-red-500/20 text-xs font-bold hover:bg-red-500/20 transition flex items-center gap-1.5">
+              <i class="fa-solid fa-right-from-bracket"></i> Log Out from This Device
+            </button>
+          </div>
+          <div id="oauthLinkControls" class="hidden border-t border-white/5 pt-4">
+            <p class="text-xs font-semibold text-neutral-300 mb-2">Linked sign-in methods</p>
+            <div class="flex flex-wrap gap-2">
+              <button id="googleLinkButton" onclick="linkOAuthProvider('google')" class="hidden border border-white/10 rounded-lg px-3 py-2 text-xs text-white hover:bg-white/5"><i class="fa-brands fa-google mr-1.5"></i>Link Google</button>
+              <button id="facebookLinkButton" onclick="linkOAuthProvider('facebook')" class="hidden border border-white/10 rounded-lg px-3 py-2 text-xs text-white hover:bg-white/5"><i class="fa-brands fa-facebook mr-1.5"></i>Link Facebook</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let currentLevel = "bachelors";
+    let isUrdu = false;
+    let currentUser = null;
+    let authMode = 'login';
+    let enabledOAuthProviders = {};
+    let oauthReturnStatus = '';
+    let quizData = null;
+    let currentQuestionIdx = 0;
+    let studentAnswers = {};
+    let selectedPdfFile = null;
+    let selectedLibraryDocumentId = null;
+    let deferredPrompt = null;
+    let focusTimer = null;
+    let focusSecondsRemaining = 0;
+    let focusSessionId = null;
+    let currentTopics = [];
+
+    async function api(path, options = {}) {
+      const response = await fetch(path, { credentials: 'same-origin', ...options });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || data.message || `Request failed (${response.status})`);
+      return data;
+    }
+
+    // Register PWA Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then(reg => {
+          console.log('PWA ServiceWorker registered');
+        }).catch(err => {
+          console.log('ServiceWorker registration failed: ', err);
+        });
+      });
+    }
+
+    // Capture PWA Install Prompt
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('pwaInstallBtn');
+      if (installBtn) installBtn.classList.remove('hidden');
+    });
+
+    function installPWA() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            showAlert("TalibAI installed on your device!", "success");
+          }
+          deferredPrompt = null;
+        });
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      oauthReturnStatus = new URLSearchParams(location.search).get('oauth') || '';
+      const resetToken = new URLSearchParams(location.search).get('reset');
+      if (resetToken) {
+        document.getElementById('resetToken').value = resetToken;
+        switchAuthMode('reset');
+        openLoginModal();
+      }
+      checkAuthentication();
+    });
+
+    function openLoginModal() {
+      const modal = document.getElementById('firstTimeLoginModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeLoginModal() {
+      if (!currentUser) return;
+      const modal = document.getElementById('firstTimeLoginModal');
+      if (modal) modal.style.display = 'none';
+    }
+
+    function switchAuthMode(mode) {
+      authMode = mode;
+      const signup = mode === 'signup';
+      const forgot = mode === 'forgot';
+      const reset = mode === 'reset';
+      document.getElementById('authNameGroup').classList.toggle('hidden', !signup);
+      document.getElementById('authLevelGroup').classList.toggle('hidden', !signup);
+      document.getElementById('authPasswordGroup').classList.toggle('hidden', forgot);
+      document.getElementById('resetTokenGroup').classList.toggle('hidden', !reset);
+      document.getElementById('authPassword').required = !forgot;
+      document.getElementById('authPassword').autocomplete = signup || reset ? 'new-password' : 'current-password';
+      document.getElementById('authEmailGroup').classList.toggle('hidden', reset);
+      document.getElementById('authEmail').required = !reset;
+      document.getElementById('authTitle').innerText = signup ? 'Create your account' : forgot ? 'Reset your password' : reset ? 'Choose a new password' : 'Log in to TalibAI';
+      document.getElementById('authDescription').innerText = reset ? 'Enter the one-time token sent to your email.' : 'Your learning profile and progress are saved to your account.';
+      document.getElementById('authSubmitButton').innerText = signup ? 'Create account' : forgot ? 'Send reset email' : reset ? 'Reset password' : 'Log in';
+      document.getElementById('authSwitchButton').classList.toggle('hidden', forgot || reset);
+      document.getElementById('forgotButton').classList.toggle('hidden', signup || forgot || reset);
+      document.getElementById('authSwitchButton').innerText = signup ? 'Already have an account? Log in' : 'Create account';
+      updateOAuthControls();
+    }
+
+    function updateOAuthControls() {
+      const showAuthButtons = authMode === 'login' || authMode === 'signup';
+      const hasProvider = Object.values(enabledOAuthProviders).some(Boolean);
+      document.getElementById('oauthButtons').classList.toggle('hidden', !showAuthButtons);
+      document.getElementById('oauthDivider').classList.toggle('hidden', !showAuthButtons);
+      document.getElementById('googleAuthButton').disabled = !enabledOAuthProviders.google;
+      document.getElementById('facebookAuthButton').disabled = !enabledOAuthProviders.facebook;
+      document.getElementById('googleAuthLabel').innerText = authMode === 'signup' ? 'Sign up with Google' : 'Continue with Google';
+      document.getElementById('facebookAuthLabel').innerText = authMode === 'signup' ? 'Sign up with Facebook' : 'Continue with Facebook';
+      document.getElementById('oauthConfigNote').classList.toggle('hidden', !showAuthButtons || hasProvider);
+      document.getElementById('oauthLinkControls').classList.toggle('hidden', !currentUser || !hasProvider);
+      document.getElementById('googleLinkButton').classList.toggle('hidden', !enabledOAuthProviders.google);
+      document.getElementById('facebookLinkButton').classList.toggle('hidden', !enabledOAuthProviders.facebook);
+    }
+
+    function startOAuth(provider) {
+      if (enabledOAuthProviders[provider]) location.assign(`/api/auth/oauth/${provider}`);
+    }
+
+    async function loadOAuthProviders() {
+      try {
+        enabledOAuthProviders = await api('/api/auth/providers');
+        updateOAuthControls();
+      } catch (error) {
+        enabledOAuthProviders = {};
+        updateOAuthControls();
+      }
+    }
+
+    function linkOAuthProvider(provider) {
+      if (enabledOAuthProviders[provider]) location.assign(`/api/auth/link/${provider}`);
+    }
+
+    function handleOAuthReturn() {
+      const messages = {
+        link_required: 'An account already uses this email. Sign in with email/password, then link the provider in Account settings.',
+        identity_conflict: 'This provider is linked to a different account. Sign in with that account to continue.',
+        email_unverified: 'The provider did not return a verified email address. Check its email permissions and try again.',
+        error: 'Social sign-in could not be completed. Please try again.'
+      };
+      if (oauthReturnStatus === 'linked') showAlert('Social sign-in method linked to your account.', 'success');
+      else if (messages[oauthReturnStatus]) {
+        document.getElementById('authDescription').innerText = messages[oauthReturnStatus];
+        showAlert(messages[oauthReturnStatus], 'error');
+      }
+    }
+
+    async function submitAuth(event) {
+      event.preventDefault();
+      const button = document.getElementById('authSubmitButton');
+      button.disabled = true;
+      try {
+        const email = document.getElementById('authEmail').value.trim();
+        const password = document.getElementById('authPassword').value;
+        if (authMode === 'forgot') {
+          await api('/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+          switchAuthMode('reset');
+          document.getElementById('authEmail').value = email;
+          showAlert('If an account exists for that email, a reset token has been sent.', 'success');
+        } else if (authMode === 'reset') {
+          await api('/api/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: document.getElementById('resetToken').value.trim(), password }) });
+          switchAuthMode('login');
+          document.getElementById('authPassword').value = '';
+          showAlert('Password reset. Log in with your new password.', 'success');
+        } else {
+          const signup = authMode === 'signup';
+          const body = { email, password };
+          if (signup) {
+            body.name = document.getElementById('authName').value.trim();
+            body.level = document.getElementById('authLevel').value;
+          }
+          const result = await api(signup ? '/api/auth/signup' : '/api/auth/login', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+          });
+          currentUser = result.user;
+          updateOAuthControls();
+          closeLoginModal();
+          document.getElementById('topLoginText').innerText = currentUser.email;
+          document.getElementById('accountEmail').innerText = currentUser.email;
+          showAlert(signup ? 'Account created.' : 'Welcome back.', 'success');
+          await fetchDashboardData();
+          await fetchShortCourses();
+          await fetchLibraryDocuments();
+          await fetchTutorHistory();
+          await fetchStudioDraft();
+        }
+      } catch (error) {
+        showAlert(error.message, 'error');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    async function checkAuthentication() {
+      try {
+        await loadOAuthProviders();
+        const result = await api('/api/auth/me');
+        currentUser = result.user;
+        if (!currentUser) {
+          switchAuthMode(authMode === 'reset' ? 'reset' : 'login');
+          openLoginModal();
+          handleOAuthReturn();
+          return;
+        }
+        updateOAuthControls();
+        closeLoginModal();
+        document.getElementById('topLoginText').innerText = currentUser.email;
+        document.getElementById('accountEmail').innerText = currentUser.email;
+        await fetchDashboardData();
+        await fetchShortCourses();
+        await fetchLibraryDocuments();
+        await fetchTutorHistory();
+        await fetchStudioDraft();
+        handleOAuthReturn();
+      } catch (error) {
+        currentUser = null;
+        switchAuthMode(authMode === 'reset' ? 'reset' : 'login');
+        openLoginModal();
+      }
+    }
+
+    async function logoutStudent() {
+      if (focusSessionId) await api(`/api/activity/focus/${encodeURIComponent(focusSessionId)}`, { method: 'DELETE' }).catch(() => {});
+      try { await api('/api/auth/logout', { method: 'POST' }); }
+      catch (error) { showAlert(error.message, 'error'); return; }
+      currentUser = null;
+      clearInterval(focusTimer);
+      focusTimer = null;
+      focusSessionId = null;
+      document.getElementById('topLoginText').innerText = 'Account';
+      document.getElementById('profileName').innerText = 'Signed out';
+      document.getElementById('profileMajor').innerText = '';
+      switchAuthMode('login');
+      openLoginModal();
+      showAlert('Logged out.', 'info');
+    }
+
+    function switchTab(tabId) {
+      if (!currentUser) { openLoginModal(); return; }
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.nav-item').forEach(el => {
+        el.classList.remove('bg-white/10', 'text-white');
+        el.classList.add('text-neutral-400');
+      });
+
+      const selectedTab = document.getElementById('tab-' + tabId);
+      const selectedNav = document.getElementById('nav-' + tabId);
+      if (selectedTab) selectedTab.classList.remove('hidden');
+      if (selectedNav) {
+        selectedNav.classList.add('bg-white/10', 'text-white');
+        selectedNav.classList.remove('text-neutral-400');
+      }
+
+      const titles = {
+        dashboard: "Academic Headquarters",
+        tutor: "AI Socratic Teacher & Oral Practice",
+        planner: "Smart Syllabus & Timetable Engine",
+        lectures: "Verified Lecture Hub & 15-MCQ Checkpoints",
+        studio: "Assignment & Presentation Studio",
+        courses: "Short Courses & Career Skills",
+        library: "Digital E-Library & Semantic Search",
+        account: "Student Account & Profile Settings"
+      };
+      document.getElementById('pageTitle').innerText = titles[tabId] || "TalibAI";
+      if (tabId === 'lectures') loadLectures();
+      if (tabId === 'library') fetchLibraryDocuments();
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
+    }
+
+    async function fetchDashboardData() {
+      try {
+        const data = await api('/api/dashboard');
+        const p = data.profile;
+        document.getElementById('profileName').innerText = p.name;
+        document.getElementById('profileMajor').innerText = [p.current_semester ? `Sem ${p.current_semester}` : '', p.degree_major].filter(Boolean).join(' • ');
+        document.getElementById('streakCount').innerText = `${data.stats.streak_days}d`;
+        const initials = (p.name || '?').trim().split(/\s+/).slice(0, 2).map(part => part[0]).join('').toUpperCase();
+        document.getElementById('profileInitials').innerText = initials;
+        document.getElementById('accountAvatar').innerText = initials;
+        document.getElementById('editName').value = p.name || '';
+        document.getElementById('editInstitution').value = p.institution || '';
+        document.getElementById('editMajor').value = p.degree_major || '';
+        document.getElementById('editSemester').value = p.current_semester || '';
+        document.getElementById('editLevel').value = p.education_level;
+        currentLevel = p.education_level;
+        isUrdu = p.preferred_language === 'ur';
+        document.getElementById('academicLevelSelect').value = currentLevel;
+        document.getElementById('statSyllabusPct').innerText = `${data.stats.syllabus_completion_pct}%`;
+        document.getElementById('statSyllabusBar').style.width = `${data.stats.syllabus_completion_pct}%`;
+        document.getElementById('statQuizMastery').innerText = `${data.stats.quiz_mastery_pct}%`;
+        document.getElementById('statQuizAttempts').innerText = `${data.stats.quiz_attempts_count} attempts`;
+        document.getElementById('statHours').innerText = `${data.stats.study_hours}h`;
+        document.getElementById('statWeakTopics').innerText = data.stats.weak_topics_count;
+        document.getElementById('statWeakTopicNames').innerText = data.stats.weak_topics.length ? data.stats.weak_topics.map(escapeHtml).join(', ') : 'No weak topics recorded';
+        const nextExam = data.courses.map(course => course.exam_date).filter(Boolean).sort()[0];
+        document.getElementById('examCountdown').innerText = nextExam ? `Next exam: ${new Date(`${nextExam}T00:00:00`).toLocaleDateString()}` : 'No exam dates added';
+        currentTopics = data.topics;
+        const topicSelect = document.getElementById('quizTopicSelect');
+        const selectedTopicId = topicSelect.value;
+        topicSelect.innerHTML = data.topics.length ? data.topics.map(topic => `<option value="${Number(topic.id)}">${escapeHtml(topic.title)}</option>`).join('') : '<option value="">Add a course outline to begin</option>';
+        if (data.topics.some(topic => String(topic.id) === selectedTopicId)) topicSelect.value = selectedTopicId;
+        renderTimetable(data.topics);
+        renderCourses(data.courses);
+        updateLevelLabels();
+        if (topicSelect.value) loadLectures();
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
+    }
+
+    async function saveStudentProfile() {
+      const name = document.getElementById('editName').value.trim();
+      if (!name) { showAlert('Enter your name before saving.', 'error'); return; }
+      try {
+        await api('/api/profile', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, institution: document.getElementById('editInstitution').value.trim(), degree_major: document.getElementById('editMajor').value.trim(), current_semester: Number(document.getElementById('editSemester').value) || null, level: document.getElementById('editLevel').value })
+        });
+        showAlert('Profile and settings saved to your account.', 'success');
+        await fetchDashboardData();
+        switchTab('dashboard');
+      } catch (e) {
+        showAlert(e.message, 'error');
+      }
+    }
+
+    function renderTimetable(topics) {
+      const list = document.getElementById('timetableList');
+      if (!topics || topics.length === 0) {
+        list.innerHTML = `<p class="text-xs text-neutral-400">No scheduled sessions. Upload a course outline to generate your timetable.</p>`;
+        return;
+      }
+
+      list.innerHTML = topics.map(t => {
+        const isDone = t.is_completed === 1;
+        return `
+          <div class="flex items-center justify-between p-3.5 rounded-xl ${isDone ? 'bg-white/[0.03] border border-white/5' : 'bg-gradient-to-r from-[#1ED760]/10 to-transparent border border-[#1ED760]/30'}">
+            <div class="flex items-center space-x-3.5">
+              <div class="w-8 h-8 rounded-full ${isDone ? 'bg-[#1ED760]/20 text-[#1ED760]' : 'bg-[#1ED760] text-black font-bold'} flex items-center justify-center text-xs">
+                <i class="fa-solid ${isDone ? 'fa-check' : 'fa-play'}"></i>
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h4 class="text-sm font-semibold text-white">${escapeHtml(t.title)}</h4>
+                  ${isDone ? '<span class="text-[10px] bg-[#1ED760]/20 text-[#1ED760] font-bold px-1.5 py-0.5 rounded">Quiz passed</span>' : ''}
+                </div>
+                <p class="text-xs text-neutral-400">${escapeHtml(t.module_name || 'Module')} • ${escapeHtml(t.scheduled_date || '')} ${escapeHtml(t.time_slot || '')}</p>
+              </div>
+            </div>
+            <button onclick="selectQuizTopic(${Number(t.id)})" class="spotify-btn px-4 py-1.5 rounded-full text-xs">${isDone ? 'Retake' : 'Quiz'}</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderCourses(courses) {
+      const container = document.getElementById('activeCoursesList');
+      if (!courses || courses.length === 0) {
+        container.innerHTML = '<p class="text-xs text-neutral-400">No courses yet. Upload an outline to add your first course.</p>';
+        return;
+      }
+      
+      container.innerHTML = courses.map(c => `
+        <div class="p-3 rounded-xl bg-white/5 border border-white/5 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-white">${escapeHtml(c.name)}</p>
+            <p class="text-[11px] text-neutral-400">${c.completed_topics} / ${c.total_topics} topics passed${c.exam_date ? ` • Exam: ${escapeHtml(c.exam_date)}` : ''}</p>
+          </div>
+          <span class="text-xs bg-[#1ED760]/20 text-[#1ED760] font-bold px-2.5 py-1 rounded-full">${Math.round((c.completed_topics / (c.total_topics || 1)) * 100)}%</span>
+        </div>
+      `).join('');
+    }
+
+    function updateLevelLabels() {
+      const labelMap = { class_9_10: 'Class 9-10', class_11_12: 'Class 11-12', bachelors: "Bachelor's", masters: "Master's" };
+      const text = `${labelMap[currentLevel] || currentLevel} Mode Active`;
+      document.getElementById('levelBadge').innerText = text;
+      document.getElementById('tutorSubhead').innerText = `Teaching Mode: ${text}`;
+    }
+
+    async function onAcademicLevelChanged(level) {
+      currentLevel = level;
+      updateLevelLabels();
+      try {
+        await api('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ level }) });
+        showAlert('Academic level saved.', 'success');
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    function toggleUrduMode() {
+      isUrdu = !isUrdu;
+      const btn = document.getElementById('urduToggleBtn');
+      if (isUrdu) {
+        btn.classList.add('bg-[#9D7BFF]/20', 'border-[#9D7BFF]');
+        showAlert("اردو موڈ فعال ہے - اب AI آپ سے اردو میں مخاطب ہوگا", "info");
+      } else {
+        btn.classList.remove('bg-[#9D7BFF]/20', 'border-[#9D7BFF]');
+        showAlert("English instruction mode restored", "info");
+      }
+      api('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: isUrdu ? 'ur' : 'en' }) })
+        .catch(error => showAlert(error.message, 'error'));
+    }
+
+    // AI Tutor chat
+    async function sendTutorMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = "";
+
+      try {
+        appendChat('You', text);
+        const data = await api('/api/tutor/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: text, level: currentLevel, language: isUrdu ? 'ur' : 'en', mode: 'tutor' })
+        });
+        appendChat('Prof. Talib', data.response);
+      } catch (error) {
+        showAlert(error.message, 'error');
+      }
+    }
+
+    async function requestHint() {
+      try {
+        const data = await api('/api/tutor/chat', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: 'Give me a hint about the current topic.', level: currentLevel, language: isUrdu ? 'ur' : 'en', mode: 'hint' })
+        });
+        appendChat('Prof. Talib', data.response);
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    function requestUrduExplanation() {
+      isUrdu = true;
+      document.getElementById('urduToggleBtn').classList.add('bg-[#9D7BFF]/20', 'border-[#9D7BFF]');
+      document.getElementById('chatInput').value = 'براہ کرم اس تصور کی وضاحت اردو میں کریں';
+      api('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ language: 'ur' }) })
+        .then(sendTutorMessage).catch(error => showAlert(error.message, 'error'));
+    }
+
+    function appendChat(sender, msg) {
+      const history = document.getElementById('chatHistory');
+      const isAI = sender !== 'You';
+      const row = document.createElement('div');
+      row.className = 'flex items-start space-x-3';
+      const bubble = document.createElement('div');
+      bubble.className = 'liquid-glass p-4 rounded-2xl max-w-2xl text-xs space-y-1 border border-white/10';
+      const label = document.createElement('p');
+      label.className = `font-medium ${isAI ? 'text-white' : 'text-[#1ED760]'}`;
+      label.textContent = sender;
+      const text = document.createElement('p');
+      text.className = 'text-neutral-200 leading-relaxed whitespace-pre-wrap';
+      text.textContent = msg;
+      bubble.append(label, text);
+      row.appendChild(bubble);
+      history.appendChild(row);
+      history.scrollTop = history.scrollHeight;
+    }
+
+    async function fetchTutorHistory() {
+      try {
+        const messages = await api('/api/tutor/history');
+        const history = document.getElementById('chatHistory');
+        history.replaceChildren();
+        if (!messages.length) appendChat('Prof. Talib', 'Ask a question to begin.');
+        messages.forEach(message => appendChat(message.role === 'user' ? 'You' : 'Prof. Talib', message.content));
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    async function fetchStudioDraft() {
+      try {
+        const draft = await api('/api/studio/draft');
+        document.getElementById('studioTopicInput').value = draft.topic;
+        document.getElementById('studioEditor').innerText = draft.content;
+        document.getElementById('studioSaveStatus').innerText = draft.content ? 'Draft saved' : 'No saved draft';
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    let studioSaveTimer = null;
+    function queueStudioSave() {
+      clearTimeout(studioSaveTimer);
+      document.getElementById('studioSaveStatus').innerText = 'Saving…';
+      studioSaveTimer = setTimeout(saveStudioDraft, 700);
+    }
+
+    async function saveStudioDraft() {
+      try {
+        await api('/api/studio/draft', {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: document.getElementById('studioTopicInput').value, content: document.getElementById('studioEditor').innerText })
+        });
+        document.getElementById('studioSaveStatus').innerText = 'Saved';
+      } catch (error) {
+        document.getElementById('studioSaveStatus').innerText = 'Save failed';
+        showAlert(error.message, 'error');
+      }
+    }
+
+    async function loadLectures() {
+      const topic = currentTopics.find(item => String(item.id) === document.getElementById('quizTopicSelect').value);
+      const list = document.getElementById('lectureList');
+      if (!topic) { list.innerHTML = '<p class="text-xs text-neutral-500">No topic selected.</p>'; return; }
+      document.getElementById('currentLectureTitle').innerText = topic.title;
+      try {
+        const lectures = await api(`/api/lectures?topic=${encodeURIComponent(topic.title)}`);
+        list.innerHTML = lectures.length ? lectures.map(lecture => `<a class="block p-3 rounded-lg bg-white/5 hover:bg-white/10 text-xs" href="${escapeHtml(lecture.youtube_url)}" target="_blank" rel="noopener noreferrer"><span class="font-semibold text-white">${escapeHtml(lecture.title)}</span><span class="block text-neutral-400 mt-1">Language: ${escapeHtml(lecture.language)} · YouTube search</span></a>`).join('') : '<p class="text-xs text-neutral-400">No curated links are available for this topic.</p>';
+      } catch (error) { list.textContent = error.message; }
+    }
+
+    function selectQuizTopic(topicId) {
+      document.getElementById('quizTopicSelect').value = String(topicId);
+      switchTab('lectures');
+      loadQuiz();
+    }
+
+    async function loadQuiz() {
+      const topicId = Number(document.getElementById('quizTopicSelect').value);
+      const topic = currentTopics.find(item => item.id === topicId);
+      if (!topic) { showAlert('Choose a saved course topic first.', 'error'); return; }
+      try {
+        quizData = await api('/api/quiz/session', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic: topic.title, topic_id: topic.id })
+        });
+        document.getElementById('quizBody').innerHTML = '<p id="quizQuestionText" class="text-xs font-semibold text-white leading-relaxed"></p><div id="quizOptionsList" class="space-y-2"></div><div id="questionFeedback" class="hidden p-3 rounded-xl text-xs space-y-1"></div>';
+        document.getElementById('btnPrevQ').classList.remove('hidden');
+        document.getElementById('btnNextQ').classList.remove('hidden');
+        document.getElementById('btnSubmitQ').classList.add('hidden');
+        currentQuestionIdx = 0;
+        studentAnswers = {};
+        displayCurrentQuestion();
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    function displayCurrentQuestion() {
+      if (!quizData || !quizData.questions) return;
+      const question = quizData.questions[currentQuestionIdx];
+      document.getElementById('quizIndexBadge').innerText = `Question ${currentQuestionIdx + 1} of ${quizData.total_questions}`;
+      document.getElementById('quizQuestionText').innerText = `Q${question.id}: ${question.question}`;
+      document.getElementById('quizOptionsList').innerHTML = question.options.map((option, index) => {
+        const selected = studentAnswers[String(question.id)] === index;
+        return `<button onclick="pickOption(${index})" class="w-full text-left p-3 rounded-xl ${selected ? 'bg-[#1ED760]/20 border border-[#1ED760] text-white' : 'bg-white/5 hover:bg-white/10 border border-white/5 text-neutral-300'} text-xs transition"><span class="font-bold mr-2">${String.fromCharCode(65 + index)})</span> ${escapeHtml(option)}</button>`;
+      }).join('');
+      document.getElementById('btnPrevQ').disabled = currentQuestionIdx === 0;
+      document.getElementById('btnNextQ').disabled = false;
+      document.getElementById('btnNextQ').classList.toggle('hidden', currentQuestionIdx === quizData.questions.length - 1);
+      document.getElementById('btnSubmitQ').classList.toggle('hidden', currentQuestionIdx !== quizData.questions.length - 1);
+    }
+
+    function pickOption(index) {
+      const question = quizData.questions[currentQuestionIdx];
+      studentAnswers[String(question.id)] = index;
+      displayCurrentQuestion();
+    }
+
+    function nextQuestion() {
+      if (quizData && currentQuestionIdx < quizData.questions.length - 1) { currentQuestionIdx++; displayCurrentQuestion(); }
+    }
+
+    function prevQuestion() {
+      if (currentQuestionIdx > 0) { currentQuestionIdx--; displayCurrentQuestion(); }
+    }
+
+    async function submitQuiz() {
+      if (!quizData) return;
+      if (Object.keys(studentAnswers).length !== quizData.total_questions) { showAlert('Answer every question before submitting.', 'error'); return; }
+      const button = document.getElementById('btnSubmitQ');
+      button.disabled = true;
+      try {
+        const result = await api('/api/quiz/submit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: quizData.session_id, answers: studentAnswers })
+        });
+        document.getElementById('quizBody').innerHTML = `<div class="p-4 rounded-xl ${result.passed ? 'bg-[#1ED760]/10 border border-[#1ED760]/30 text-[#1ED760]' : 'bg-red-500/10 border border-red-500/30 text-red-400'} space-y-2"><h4 class="text-sm font-bold">${escapeHtml(result.message)}</h4><p class="text-xs text-white">Score: <strong>${result.score_pct}%</strong> (${result.correct_count} / ${result.total_questions} correct)</p></div><div class="space-y-3 pt-2">${result.feedback.map(item => `<div class="p-2.5 rounded-lg bg-white/5 border border-white/5 text-[11px]"><p class="text-white font-semibold">Q: ${escapeHtml(item.question)}</p><p class="${item.is_correct ? 'text-[#1ED760]' : 'text-red-400'} font-medium">${item.is_correct ? 'Correct' : 'Incorrect'}</p><p class="text-neutral-400 mt-1">${escapeHtml(item.explanation)}</p></div>`).join('')}</div>`;
+        document.getElementById('btnSubmitQ').classList.add('hidden');
+        document.getElementById('btnPrevQ').classList.add('hidden');
+        document.getElementById('btnNextQ').classList.add('hidden');
+        await fetchDashboardData();
+        showAlert(result.passed ? 'Quiz passed and progress saved.' : 'Quiz result saved. Review and try again.', result.passed ? 'success' : 'info');
+      } catch (error) { showAlert(error.message, 'error'); }
+      finally { button.disabled = false; }
+    }
+
+    function handlePdfSelected(input) {
+      if (input.files && input.files[0]) {
+        selectedPdfFile = input.files[0];
+        document.getElementById('pdfFilename').innerText = `Selected: ${selectedPdfFile.name}`;
+      }
+    }
+
+    async function submitSyllabus() {
+      const name = document.getElementById('newCourseName').value.trim();
+      if (!name) { showAlert('Enter a course name.', 'error'); return; }
+      const button = document.querySelector('#tab-planner button[onclick="submitSyllabus()"]');
+      button.disabled = true;
+      if (selectedPdfFile) {
+        const formData = new FormData();
+        formData.append("file", selectedPdfFile);
+        formData.append("course_name", name);
+
+        try {
+          const data = await api('/api/syllabus/upload-pdf', { method: 'POST', body: formData });
+          showAlert(data.message, 'success');
+          selectedPdfFile = null;
+          document.getElementById('pdfFilename').innerText = "Supports HEC, Cambridge, or Board PDFs";
+          document.getElementById('syllabusText').value = '';
+          await fetchDashboardData();
+          switchTab('dashboard');
+        } catch (error) { showAlert(error.message, 'error'); }
+        finally { button.disabled = false; }
+        return;
+      }
+      const content = document.getElementById('syllabusText').value.trim();
+      if (!content) { showAlert('Choose a syllabus PDF or paste its topic headings.', 'error'); button.disabled = false; return; }
+      try {
+        const data = await api('/api/syllabus/upload', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ course_name: name, content })
+        });
+        showAlert(data.message, 'success');
+        document.getElementById('syllabusText').value = '';
+        await fetchDashboardData();
+        switchTab('dashboard');
+      } catch (error) { showAlert(error.message, 'error'); }
+      finally { button.disabled = false; }
+    }
+
+    // Studio & Export
+    async function generateStudioDraft() {
+      const topic = document.getElementById('studioTopicInput').value.trim();
+      if (!topic) { showAlert('Enter an assignment topic.', 'error'); return; }
+      const btn = document.getElementById('btnGenDraft');
+      btn.innerText = "Drafting...";
+      btn.disabled = true;
+
+      try {
+        const data = await api('/api/studio/generate-draft', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ topic })
+        });
+        document.getElementById('studioEditor').innerText = data.content;
+        showAlert('Draft generated. Review and edit it before exporting.', 'success');
+      } catch (error) {
+        showAlert(error.message, 'error');
+      } finally {
+        btn.innerText = "Generate Draft";
+        btn.disabled = false;
+      }
+    }
+
+    async function exportDocx() {
+      const topic = document.getElementById('studioTopicInput').value.trim();
+      const content = document.getElementById('studioEditor').innerText.trim();
+      if (!topic || !content) { showAlert('Enter a topic and draft before exporting.', 'error'); return; }
+      try {
+        const data = await api('/api/studio/export/docx', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, content })
+        });
+        window.location.assign(data.download_url);
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    async function exportPptx() {
+      const topic = document.getElementById('studioTopicInput').value.trim();
+      const lines = document.getElementById('studioEditor').innerText.split('\n').map(line => line.trim()).filter(Boolean);
+      if (!topic || lines.length < 2) { showAlert('Add slide headings and content to the editor first.', 'error'); return; }
+      const headings = lines.filter(line => /^#{1,2}\s/.test(line));
+      const sections = headings.length ? headings.map((heading, index) => {
+        const start = lines.indexOf(heading);
+        const nextHeading = headings[index + 1];
+        const end = nextHeading ? lines.indexOf(nextHeading) : lines.length;
+        return { title: heading.replace(/^#{1,2}\s*/, '').slice(0, 120), bullets: lines.slice(start + 1, end).filter(line => !/^#{1,2}\s/.test(line)).slice(0, 8).map(line => line.replace(/^[-*]\s*/, '').slice(0, 300)) };
+      }) : [{ title: topic, bullets: lines.slice(0, 8).map(line => line.slice(0, 300)) }];
+      if (sections.some(slide => !slide.bullets.length)) { showAlert('Each slide heading needs at least one content line.', 'error'); return; }
+      try {
+        const data = await api('/api/studio/export/pptx', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ topic, slides: sections })
+        });
+        window.location.assign(data.download_url);
+      } catch (error) { showAlert(error.message, 'error'); }
+    }
+
+    async function fetchShortCourses() {
+      try {
+        const courses = await api('/api/short-courses');
+        const grid = document.getElementById('coursesGrid');
+        grid.innerHTML = courses.map(c => `
+          <div class="liquid-glass p-4 rounded-xl space-y-3 hover:border-cyan-400/40 transition flex flex-col justify-between">
+            <div class="space-y-2">
+              <div class="w-10 h-10 rounded-lg bg-cyan-400/10 text-cyan-400 flex items-center justify-center text-lg">
+                <i class="${c.icon}"></i>
+              </div>
+              <h4 class="text-xs font-bold text-white">${escapeHtml(c.title)}</h4>
+              <p class="text-[11px] text-neutral-400">${escapeHtml(c.category)}</p>
+            </div>
+            <a href="${escapeHtml(c.youtube_search)}" target="_blank" rel="noopener noreferrer" class="w-full text-center py-2 rounded-lg bg-white/5 hover:bg-[#1ED760] hover:text-black text-xs font-bold transition text-white">
+              Search YouTube →
+            </a>
+          </div>
+        `).join('');
+      } catch (error) { document.getElementById('coursesGrid').innerHTML = `<p class="text-xs text-red-400">${escapeHtml(error.message)}</p>`; }
+    }
+
+    async function uploadLibraryPdf(input) {
+      const file = input.files && input.files[0];
+      if (!file) return;
+      const form = new FormData();
+      form.append('file', file);
+      try {
+        const result = await api('/api/library/documents', { method: 'POST', body: form });
+        showAlert(`Saved ${result.title} (${result.page_count} pages).`, 'success');
+        await fetchLibraryDocuments();
+      } catch (error) { showAlert(error.message, 'error'); }
+      finally { input.value = ''; }
+    }
+
+    async function fetchLibraryDocuments() {
+      try {
+        const documents = await api('/api/library/documents');
+        const container = document.getElementById('libraryDocuments');
+        if (!documents.length) {
+          selectedLibraryDocumentId = null;
+          container.innerHTML = '<p class="text-xs text-neutral-400">Your library is empty. Upload a PDF to get started.</p>';
+          return;
+        }
+        if (!documents.some(document => document.id === selectedLibraryDocumentId)) selectedLibraryDocumentId = documents[0].id;
+        container.innerHTML = documents.map(document => `<button onclick="selectLibraryDocument(${Number(document.id)})" class="w-full text-left p-3 rounded-lg border ${document.id === selectedLibraryDocumentId ? 'border-[#1ED760]/50 bg-[#1ED760]/10' : 'border-white/10 bg-white/5'}"><span class="text-xs font-semibold text-white">${escapeHtml(document.title)}</span><span class="block text-[10px] text-neutral-400">${new Date(document.created_at).toLocaleDateString()}</span></button>`).join('');
+      } catch (error) { document.getElementById('libraryDocuments').innerHTML = `<p class="text-xs text-red-400">${escapeHtml(error.message)}</p>`; }
+    }
+
+    function selectLibraryDocument(id) {
+      selectedLibraryDocumentId = id;
+      fetchLibraryDocuments();
+    }
+
+    async function askLibrary(event) {
+      event.preventDefault();
+      if (!selectedLibraryDocumentId) { showAlert('Upload and select a PDF first.', 'error'); return; }
+      const question = document.getElementById('libraryQuestion').value.trim();
+      if (!question) return;
+      const output = document.getElementById('libraryAnswer');
+      output.classList.remove('hidden');
+      output.innerText = 'Searching your document...';
+      try {
+        const answer = await api('/api/library/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ document_id: selectedLibraryDocumentId, question }) });
+        output.innerText = `${answer.answer}\n\nPages: ${answer.pages.join(', ')}`;
+      } catch (error) { output.innerText = error.message; }
+    }
+
+    async function quickPomodoro() {
+      if (focusTimer) {
+        clearInterval(focusTimer);
+        focusTimer = null;
+        const sessionId = focusSessionId;
+        focusSessionId = null;
+        focusSecondsRemaining = 0;
+        document.getElementById('pomodoroLabel').innerText = '25m Focus';
+        await api(`/api/activity/focus/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }).catch(error => showAlert(error.message, 'error'));
+        showAlert('Focus timer stopped. Incomplete time was not recorded.', 'info');
+        return;
+      }
+      try {
+        const started = await api('/api/activity/focus/start', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ duration_seconds: 1500 })
+        });
+        focusSessionId = started.session_id;
+      } catch (error) { showAlert(error.message, 'error'); return; }
+      focusSecondsRemaining = 25 * 60;
+      const timerStart = Date.now();
+      const sessionId = focusSessionId;
+      const tick = async () => {
+        focusSecondsRemaining = Math.max(0, Math.ceil((25 * 60 * 1000 - (Date.now() - timerStart)) / 1000));
+        document.getElementById('pomodoroLabel').innerText = `${String(Math.floor(focusSecondsRemaining / 60)).padStart(2, '0')}:${String(focusSecondsRemaining % 60).padStart(2, '0')} · Stop`;
+        if (focusSecondsRemaining === 0) {
+          clearInterval(focusTimer);
+          focusTimer = null;
+          focusSessionId = null;
+          document.getElementById('pomodoroLabel').innerText = '25m Focus';
+          try {
+            await api('/api/activity/focus/complete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ session_id: sessionId }) });
+            showAlert('25-minute focus session recorded.', 'success');
+            await fetchDashboardData();
+          } catch (error) { showAlert(error.message, 'error'); }
+        }
+      };
+      tick();
+      focusTimer = setInterval(tick, 1000);
+      showAlert('Focus timer started. Completed time is recorded to your account.', 'info');
+    }
+
+    function showAlert(msg, type) {
+      const banner = document.getElementById('statusAlert');
+      banner.className = `p-3 rounded-xl text-xs flex items-center justify-between transition ${type === 'success' ? 'bg-[#1ED760]/20 text-[#1ED760] border border-[#1ED760]/30' : (type === 'error' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-[#9D7BFF]/20 text-[#9D7BFF] border border-[#9D7BFF]/30')}`;
+      banner.textContent = msg;
+      banner.classList.remove('hidden');
+      setTimeout(() => banner.classList.add('hidden'), 5000);
+    }
+
+  </script>
+</body>
+</html>

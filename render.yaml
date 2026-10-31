@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: talib-ai
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python run.py
+    disk:
+      name: talib-ai-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.8-flash
+      - key: PORT
+        value: 10000
+      - key: HOST
+        value: 0.0.0.0
+      - key: TALIB_DB_PATH
+        value: /var/data/talib_ai.db
+      - key: TALIB_GENERATED_DIR
+        value: /var/data/generated_files
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: OAUTH_STATE_SECRET
+        sync: false
+      - key: OAUTH_COOKIE_SECURE
+        value: "true"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_CLIENT_ID
+        sync: false
+      - key: FACEBOOK_CLIENT_SECRET
+        sync: false
+      - key: FACEBOOK_GRAPH_VERSION
+        value: v25.0
